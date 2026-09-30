@@ -2,27 +2,33 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPS Arena</title>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>FPS</title>
+
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
 <div id="game">
+
     <div id="crosshair">+</div>
 
-    <div id="info">
-        FPS ARENA<br>
-        <span id="speed">0</span> km/h
+    <div id="landscape">
+        <div>Tourne ton téléphone en paysage</div>
+        <button id="play">JOUER</button>
     </div>
 
-    <!-- Joystick téléphone -->
+    <!-- Joystick -->
     <div id="joystick">
         <div id="stick"></div>
     </div>
 
+    <!-- Saut -->
     <button id="jump">↑</button>
+
 </div>
 
 <script type="importmap">
@@ -34,6 +40,27 @@
 </script>
 
 <script type="module" src="script.js"></script>
+
+<script>
+const play = document.getElementById("play");
+
+play.addEventListener("click", async () => {
+
+    try {
+        if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+        }
+    } catch (e) {}
+
+    try {
+        if (screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock("landscape");
+        }
+    } catch (e) {}
+
+    document.getElementById("landscape").style.display = "none";
+});
+</script>
 
 </body>
 </html>
