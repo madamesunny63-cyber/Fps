@@ -1,5 +1,6 @@
 * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 html,
@@ -8,8 +9,8 @@ body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #111;
-    font-family: Arial, sans-serif;
+    background: #202832;
+    touch-action: none;
 }
 
 #game {
@@ -20,76 +21,148 @@ body {
 
 canvas {
     display: block;
+    width: 100%;
+    height: 100%;
 }
+
+/* Viseur */
 
 #crosshair {
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
+
     color: white;
-    font-size: 28px;
+    font-size: 30px;
     font-weight: bold;
+
     z-index: 10;
     pointer-events: none;
 }
 
-#info {
+/* Écran portrait */
+
+#landscape {
     position: absolute;
-    top: 15px;
-    left: 15px;
+    inset: 0;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+
+    background: #111;
     color: white;
-    background: rgba(0,0,0,.6);
-    padding: 10px;
-    border-radius: 8px;
-    z-index: 10;
+
+    font-family: Arial, sans-serif;
+    font-size: 20px;
+    text-align: center;
+
+    z-index: 100;
+}
+
+/* Bouton jouer */
+
+#play {
+    padding: 15px 35px;
+
+    border: 0;
+    border-radius: 12px;
+
+    background: white;
+    color: #111;
+
+    font-size: 18px;
+    font-weight: bold;
 }
 
 /* Joystick */
 
 #joystick {
     position: absolute;
-    left: 25px;
+
+    left: 35px;
     bottom: 30px;
-    width: 130px;
-    height: 130px;
+
+    width: 140px;
+    height: 140px;
+
     border-radius: 50%;
+
     background: rgba(255,255,255,.15);
-    border: 2px solid rgba(255,255,255,.4);
+    border: 2px solid rgba(255,255,255,.45);
+
     z-index: 20;
+
     touch-action: none;
 }
 
 #stick {
     position: absolute;
-    width: 55px;
-    height: 55px;
-    left: 37px;
-    top: 37px;
+
+    left: 40px;
+    top: 40px;
+
+    width: 56px;
+    height: 56px;
+
     border-radius: 50%;
-    background: rgba(255,255,255,.6);
+
+    background: rgba(255,255,255,.65);
+
+    pointer-events: none;
 }
 
 /* Bouton saut */
 
 #jump {
     position: absolute;
-    right: 30px;
+
+    right: 35px;
     bottom: 40px;
-    width: 75px;
-    height: 75px;
+
+    width: 80px;
+    height: 80px;
+
     border-radius: 50%;
+
     border: 2px solid white;
-    background: rgba(255,255,255,.2);
+
+    background: rgba(255,255,255,.18);
+
     color: white;
-    font-size: 30px;
+
+    font-size: 32px;
+
     z-index: 20;
+
     touch-action: none;
 }
 
-@media (min-width: 800px) {
+/* Affiche l'écran paysage si le téléphone est vertical */
+
+@media (orientation: portrait) {
+
+    #landscape {
+        display: flex;
+    }
+
     #joystick,
-    #jump {
+    #jump,
+    #crosshair {
+        display: none;
+    }
+}
+
+/* PC */
+
+@media (min-width: 800px) {
+
+    #joystick,
+    #jump,
+    #landscape {
         display: none;
     }
 }
