@@ -1,41 +1,30 @@
 import * as THREE from "three";
 
-/*
-==================================================
+/* =========================
    SCÈNE
-==================================================
-*/
+========================= */
 
 const scene = new THREE.Scene();
 
-scene.background = new THREE.Color(0x101720);
-
-scene.fog = new THREE.Fog(
-    0x101720,
-    10,
-    80
-);
+scene.background = new THREE.Color(0x202832);
+scene.fog = new THREE.Fog(0x202832, 20, 90);
 
 
-/*
-==================================================
+/* =========================
    CAMÉRA
-==================================================
-*/
+========================= */
 
 const camera = new THREE.PerspectiveCamera(
-    90,
+    80,
     window.innerWidth / window.innerHeight,
-    0.05,
+    0.1,
     200
 );
 
 
-/*
-==================================================
+/* =========================
    RENDERER
-==================================================
-*/
+========================= */
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true
@@ -50,242 +39,146 @@ renderer.setPixelRatio(
     Math.min(window.devicePixelRatio, 2)
 );
 
-renderer.shadowMap.enabled = true;
-
 document
     .getElementById("game")
     .appendChild(renderer.domElement);
 
 
-/*
-==================================================
+/* =========================
    LUMIÈRES
-==================================================
-*/
+========================= */
 
-const ambientLight = new THREE.HemisphereLight(
+scene.add(
+    new THREE.HemisphereLight(
+        0xffffff,
+        0x303030,
+        2
+    )
+);
+
+const sun = new THREE.DirectionalLight(
     0xffffff,
-    0x202530,
     2
 );
 
-scene.add(ambientLight);
+sun.position.set(20, 30, 10);
 
-const light = new THREE.DirectionalLight(
-    0xffffff,
-    2
-);
-
-light.position.set(10, 20, 10);
-
-light.castShadow = true;
-
-scene.add(light);
+scene.add(sun);
 
 
-/*
-==================================================
+/* =========================
    SOL
-==================================================
-*/
+========================= */
 
-const floorGeometry =
-    new THREE.PlaneGeometry(100, 100);
-
-const floorMaterial =
+const floor = new THREE.Mesh(
+    new THREE.BoxGeometry(60, 1, 60),
     new THREE.MeshStandardMaterial({
-        color: 0x30363d
-    });
+        color: 0x39434d
+    })
+);
 
-const floor =
-    new THREE.Mesh(
-        floorGeometry,
-        floorMaterial
-    );
-
-floor.rotation.x = -Math.PI / 2;
-
-floor.receiveShadow = true;
+floor.position.y = -0.5;
 
 scene.add(floor);
 
 
-/*
-==================================================
+/* =========================
    MURS
-==================================================
-*/
+========================= */
 
-function createWall(
-    x,
-    y,
-    z,
-    width,
-    height,
-    depth
-) {
+function wall(x, y, z, w, h, d) {
 
-    const geometry =
-        new THREE.BoxGeometry(
-            width,
-            height,
-            depth
-        );
-
-    const material =
+    const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
         new THREE.MeshStandardMaterial({
-            color: 0x454d58
-        });
+            color: 0x59636e
+        })
+    );
 
-    const wall =
-        new THREE.Mesh(
-            geometry,
-            material
-        );
+    mesh.position.set(x, y, z);
 
-    wall.position.set(x, y, z);
-
-    wall.castShadow = true;
-    wall.receiveShadow = true;
-
-    scene.add(wall);
+    scene.add(mesh);
 }
 
 
-// Mur arrière
-createWall(
-    0,
-    2,
-    -20,
-    40,
-    4,
-    1
-);
+/* murs extérieurs */
 
-// Mur avant
-createWall(
-    0,
-    2,
-    20,
-    40,
-    4,
-    1
-);
-
-// Mur gauche
-createWall(
-    -20,
-    2,
-    0,
-    1,
-    4,
-    40
-);
-
-// Mur droit
-createWall(
-    20,
-    2,
-    0,
-    1,
-    4,
-    40
-);
+wall(0, 3, -30, 60, 6, 1);
+wall(0, 3, 30, 60, 6, 1);
+wall(-30, 3, 0, 1, 6, 60);
+wall(30, 3, 0, 1, 6, 60);
 
 
-/*
-==================================================
-   JOUEUR FPS
-==================================================
-*/
+/* obstacles dans l'arène */
+
+wall(-10, 2, -8, 8, 4, 2);
+wall(10, 2, 5, 8, 4, 2);
+wall(0, 2, 15, 10, 4, 2);
+wall(0, 2, -15, 10, 4, 2);
+
+
+/* =========================
+   JOUEUR
+========================= */
 
 const player = {
 
-    // Position
     position: new THREE.Vector3(
         0,
-        2,
-        10
+        1.7,
+        20
     ),
 
-    // Vitesse
     velocity: new THREE.Vector3(),
 
-    // Rotation
     yaw: 0,
     pitch: 0,
 
-    // Hauteur
-    standingHeight: 1.8,
-    crouchHeight: 1.15,
+    speed: 7,
+    sprint: 11,
 
-    // État
-    grounded: false,
-    crouching: false,
+    jump: 9,
 
-    // Statistiques
-    health: 100,
+    gravity: 25,
 
-    // Mouvement
-    walkSpeed: 7,
-    sprintSpeed: 11,
-    crouchSpeed: 4,
-
-    // Physique
-    jumpForce: 8.5,
-    gravity: 24
+    grounded: true
 };
 
 
-/*
-==================================================
-   TOUCHES
-==================================================
-*/
+/* =========================
+   CLAVIER
+========================= */
 
 const keys = {};
 
-document.addEventListener(
+window.addEventListener(
     "keydown",
-    (event) => {
-
-        keys[event.code] = true;
-
-        // Empêcher le défilement
-        if (
-            event.code === "Space" ||
-            event.code === "ArrowUp" ||
-            event.code === "ArrowDown"
-        ) {
-            event.preventDefault();
-        }
-
+    e => {
+        keys[e.code] = true;
     }
 );
 
-document.addEventListener(
+window.addEventListener(
     "keyup",
-    (event) => {
-
-        keys[event.code] = false;
-
+    e => {
+        keys[e.code] = false;
     }
 );
 
 
-/*
-==================================================
-   SOURIS / FPS LOOK
-==================================================
-*/
+/* =========================
+   SOURIS
+========================= */
 
-let mouseLocked = false;
+let mouseDown = false;
 
 renderer.domElement.addEventListener(
     "click",
     () => {
 
-        renderer.domElement.requestPointerLock();
+        if (window.innerWidth > 800) {
+            renderer.domElement.requestPointerLock();
+        }
 
     }
 );
@@ -294,97 +187,192 @@ document.addEventListener(
     "pointerlockchange",
     () => {
 
-        mouseLocked =
+        mouseDown =
             document.pointerLockElement ===
             renderer.domElement;
-
-        document
-            .getElementById("game")
-            .classList.toggle(
-                "playing",
-                mouseLocked
-            );
 
     }
 );
 
 document.addEventListener(
     "mousemove",
-    (event) => {
+    e => {
 
-        if (!mouseLocked) {
-            return;
+        if (!mouseDown) return;
+
+        player.yaw -= e.movementX * 0.002;
+        player.pitch -= e.movementY * 0.002;
+
+        player.pitch = THREE.MathUtils.clamp(
+            player.pitch,
+            -1.4,
+            1.4
+        );
+    }
+);
+
+
+/* =========================
+   JOYSTICK
+========================= */
+
+const joystick =
+    document.getElementById("joystick");
+
+const stick =
+    document.getElementById("stick");
+
+let joystickX = 0;
+let joystickY = 0;
+
+joystick.addEventListener(
+    "pointermove",
+    e => {
+
+        if (e.buttons === 0) return;
+
+        const rect =
+            joystick.getBoundingClientRect();
+
+        let x =
+            e.clientX -
+            (rect.left + rect.width / 2);
+
+        let y =
+            e.clientY -
+            (rect.top + rect.height / 2);
+
+        const max = 38;
+
+        const length =
+            Math.sqrt(x * x + y * y);
+
+        if (length > max) {
+
+            x = x / length * max;
+            y = y / length * max;
+
         }
 
-        const sensitivity = 0.002;
+        joystickX = x / max;
+        joystickY = y / max;
 
-        player.yaw -=
-            event.movementX *
-            sensitivity;
+        stick.style.transform =
+            `translate(${x}px, ${y}px)`;
+    }
+);
 
-        player.pitch -=
-            event.movementY *
-            sensitivity;
+joystick.addEventListener(
+    "pointerup",
+    () => {
 
-        // Limiter le regard vertical
+        joystickX = 0;
+        joystickY = 0;
 
-        const maxPitch =
-            Math.PI / 2 - 0.05;
+        stick.style.transform =
+            "translate(0,0)";
+    }
+);
+
+
+/* =========================
+   CAMÉRA TACTILE
+========================= */
+
+let touchStartX = 0;
+let touchStartY = 0;
+
+window.addEventListener(
+    "touchstart",
+    e => {
+
+        if (
+            e.target === joystick ||
+            e.target === stick ||
+            e.target.id === "jump"
+        ) return;
+
+        const touch = e.touches[0];
+
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+
+    },
+    { passive: true }
+);
+
+window.addEventListener(
+    "touchmove",
+    e => {
+
+        if (
+            e.target === joystick ||
+            e.target === stick ||
+            e.target.id === "jump"
+        ) return;
+
+        const touch = e.touches[0];
+
+        const dx =
+            touch.clientX - touchStartX;
+
+        const dy =
+            touch.clientY - touchStartY;
+
+        player.yaw -= dx * 0.004;
+        player.pitch -= dy * 0.004;
 
         player.pitch =
             THREE.MathUtils.clamp(
                 player.pitch,
-                -maxPitch,
-                maxPitch
+                -1.4,
+                1.4
             );
+
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+
+    },
+    { passive: true }
+);
+
+
+/* =========================
+   SAUT
+========================= */
+
+function jump() {
+
+    if (!player.grounded) return;
+
+    player.velocity.y =
+        player.jump;
+
+    player.grounded = false;
+}
+
+document
+    .getElementById("jump")
+    .addEventListener(
+        "pointerdown",
+        jump
+    );
+
+window.addEventListener(
+    "keydown",
+    e => {
+
+        if (e.code === "Space") {
+            jump();
+        }
 
     }
 );
 
 
-/*
-==================================================
-   SAUT
-==================================================
-*/
-
-function jump() {
-
-    if (!player.grounded) {
-        return;
-    }
-
-    if (player.crouching) {
-        return;
-    }
-
-    player.velocity.y =
-        player.jumpForce;
-
-    player.grounded = false;
-}
-
-
-/*
-==================================================
-   ACCROUPISSEMENT
-==================================================
-*/
-
-function updateCrouch() {
-
-    player.crouching =
-        keys["ControlLeft"] ||
-        keys["ControlRight"];
-
-}
-
-
-/*
-==================================================
-   DIRECTION
-==================================================
-*/
+/* =========================
+   DÉPLACEMENT
+========================= */
 
 const forward =
     new THREE.Vector3();
@@ -392,8 +380,35 @@ const forward =
 const right =
     new THREE.Vector3();
 
+function updatePlayer(dt) {
 
-function getMovementDirection() {
+    let forwardInput = 0;
+    let rightInput = 0;
+
+    /* PC */
+
+    if (keys["KeyW"])
+        forwardInput += 1;
+
+    if (keys["KeyS"])
+        forwardInput -= 1;
+
+    if (keys["KeyD"])
+        rightInput += 1;
+
+    if (keys["KeyA"])
+        rightInput -= 1;
+
+    /* téléphone */
+
+    if (Math.abs(joystickY) > 0.05)
+        forwardInput = -joystickY;
+
+    if (Math.abs(joystickX) > 0.05)
+        rightInput = joystickX;
+
+
+    /* direction */
 
     forward.set(
         0,
@@ -408,48 +423,15 @@ function getMovementDirection() {
     );
 
     forward.applyAxisAngle(
-        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(0,1,0),
         player.yaw
     );
 
     right.applyAxisAngle(
-        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(0,1,0),
         player.yaw
     );
 
-}
-
-
-/*
-==================================================
-   DÉPLACEMENT
-==================================================
-*/
-
-function updateMovement(deltaTime) {
-
-    updateCrouch();
-
-    getMovementDirection();
-
-    let moveForward = 0;
-    let moveRight = 0;
-
-    if (keys["KeyW"]) {
-        moveForward += 1;
-    }
-
-    if (keys["KeyS"]) {
-        moveForward -= 1;
-    }
-
-    if (keys["KeyD"]) {
-        moveRight += 1;
-    }
-
-    if (keys["KeyA"]) {
-        moveRight -= 1;
-    }
 
     const direction =
         new THREE.Vector3();
@@ -457,288 +439,122 @@ function updateMovement(deltaTime) {
     direction
         .addScaledVector(
             forward,
-            moveForward
+            forwardInput
         )
         .addScaledVector(
             right,
-            moveRight
+            rightInput
         );
 
-    // Normalisation
-    if (direction.lengthSq() > 0) {
-
+    if (direction.lengthSq() > 1)
         direction.normalize();
 
-    }
 
-
-    /*
-    ----------------------------------------------
-       VITESSE
-    ----------------------------------------------
-    */
-
-    let speed =
-        player.walkSpeed;
-
-
-    // Sprint
-
-    const sprinting =
-        keys["ShiftLeft"] ||
-        keys["ShiftRight"];
+    let speed = player.speed;
 
     if (
-        sprinting &&
-        !player.crouching &&
-        moveForward > 0
+        keys["ShiftLeft"] ||
+        keys["ShiftRight"]
     ) {
-
-        speed =
-            player.sprintSpeed;
-
+        speed = player.sprint;
     }
-
-
-    // Accroupi
-
-    if (player.crouching) {
-
-        speed =
-            player.crouchSpeed;
-
-    }
-
-
-    /*
-    ----------------------------------------------
-       ACCÉLÉRATION
-    ----------------------------------------------
-    */
-
-    const acceleration =
-        45;
-
-    const targetX =
-        direction.x * speed;
-
-    const targetZ =
-        direction.z * speed;
 
 
     player.velocity.x =
-        THREE.MathUtils.damp(
-            player.velocity.x,
-            targetX,
-            acceleration,
-            deltaTime
-        );
+        direction.x * speed;
 
     player.velocity.z =
-        THREE.MathUtils.damp(
-            player.velocity.z,
-            targetZ,
-            acceleration,
-            deltaTime
-        );
+        direction.z * speed;
 
 
-    /*
-    ----------------------------------------------
-       GRAVITÉ
-    ----------------------------------------------
-    */
+    /* gravité */
 
     player.velocity.y -=
-        player.gravity * deltaTime;
+        player.gravity * dt;
 
-
-    /*
-    ----------------------------------------------
-       POSITION
-    ----------------------------------------------
-    */
 
     player.position.x +=
-        player.velocity.x *
-        deltaTime;
+        player.velocity.x * dt;
 
     player.position.y +=
-        player.velocity.y *
-        deltaTime;
+        player.velocity.y * dt;
 
     player.position.z +=
-        player.velocity.z *
-        deltaTime;
+        player.velocity.z * dt;
 
 
-    /*
-    ----------------------------------------------
-       SOL
-    ----------------------------------------------
-    */
+    /* sol */
 
-    const standingY =
-        player.standingHeight;
+    if (player.position.y <= 1.7) {
 
-    const crouchY =
-        player.crouchHeight;
-
-    const targetHeight =
-        player.crouching
-            ? crouchY
-            : standingY;
-
-
-    if (
-        player.position.y <=
-        targetHeight
-    ) {
-
-        player.position.y =
-            targetHeight;
+        player.position.y = 1.7;
 
         player.velocity.y = 0;
 
         player.grounded = true;
-
-    } else {
-
-        player.grounded = false;
-
     }
 
 
-    /*
-    ----------------------------------------------
-       LIMITES DE L'ARÈNE
-    ----------------------------------------------
-    */
-
-    const limit = 18.5;
+    /* limites arène */
 
     player.position.x =
         THREE.MathUtils.clamp(
             player.position.x,
-            -limit,
-            limit
+            -28,
+            28
         );
 
     player.position.z =
         THREE.MathUtils.clamp(
             player.position.z,
-            -limit,
-            limit
+            -28,
+            28
         );
-
 }
 
 
-/*
-==================================================
+/* =========================
    CAMÉRA
-==================================================
-*/
+========================= */
 
-function updateCamera(deltaTime) {
-
-    const targetHeight =
-        player.crouching
-            ? player.crouchHeight
-            : player.standingHeight;
-
-
-    /*
-    Position
-    */
+function updateCamera() {
 
     camera.position.copy(
         player.position
     );
 
-
-    /*
-    Regard horizontal
-    */
-
-    camera.rotation.order =
-        "YXZ";
+    camera.rotation.order = "YXZ";
 
     camera.rotation.y =
         player.yaw;
 
     camera.rotation.x =
         player.pitch;
-
-
-    /*
-    FOV dynamique pendant le sprint
-    */
-
-    const sprinting =
-        (
-            keys["ShiftLeft"] ||
-            keys["ShiftRight"]
-        ) &&
-        keys["KeyW"];
-
-
-    const targetFOV =
-        sprinting
-            ? 100
-            : 90;
-
-
-    camera.fov =
-        THREE.MathUtils.damp(
-            camera.fov,
-            targetFOV,
-            8,
-            deltaTime
-        );
-
-    camera.updateProjectionMatrix();
-
 }
 
 
-/*
-==================================================
+/* =========================
    HUD
-==================================================
-*/
+========================= */
 
 function updateHUD() {
 
-    document.getElementById(
-        "health"
-    ).textContent =
-        Math.max(
-            0,
-            Math.round(player.health)
-        );
-
-
-    const horizontalSpeed =
+    const speed =
         Math.sqrt(
             player.velocity.x ** 2 +
             player.velocity.z ** 2
         );
 
-
     document.getElementById(
         "speed"
     ).textContent =
-        Math.round(horizontalSpeed);
-
+        Math.round(speed * 10);
 }
 
 
-/*
-==================================================
+/* =========================
    RESIZE
-==================================================
-*/
+========================= */
 
 window.addEventListener(
     "resize",
@@ -759,65 +575,31 @@ window.addEventListener(
 );
 
 
-/*
-==================================================
-   ESPACE = SAUT
-==================================================
-*/
-
-document.addEventListener(
-    "keydown",
-    (event) => {
-
-        if (event.code === "Space") {
-
-            jump();
-
-        }
-
-    }
-);
-
-
-/*
-==================================================
-   BOUCLE PRINCIPALE
-==================================================
-*/
+/* =========================
+   BOUCLE
+========================= */
 
 const clock =
     new THREE.Clock();
 
-function gameLoop() {
+function loop() {
 
-    const deltaTime =
+    const dt =
         Math.min(
             clock.getDelta(),
             0.05
         );
 
-
-    updateMovement(
-        deltaTime
-    );
-
-    updateCamera(
-        deltaTime
-    );
-
+    updatePlayer(dt);
+    updateCamera();
     updateHUD();
-
 
     renderer.render(
         scene,
         camera
     );
 
-
-    requestAnimationFrame(
-        gameLoop
-    );
-
+    requestAnimationFrame(loop);
 }
 
-gameLoop();
+loop();
