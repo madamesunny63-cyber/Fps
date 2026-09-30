@@ -1,32 +1,50 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width,
-                   initial-scale=1,
-                   maximum-scale=1,
-                   user-scalable=no">
+
+    <meta
+        name="viewport"
+        content="width=device-width,
+                 initial-scale=1.0,
+                 maximum-scale=1.0,
+                 user-scalable=no"
+    >
 
     <title>FPS</title>
+
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<div id="game">
+    <div id="game">
 
-    <div id="crosshair">+</div>
+        <!-- Viseur -->
+        <div id="crosshair">+</div>
 
-    <div id="joystick">
-        <div id="stick"></div>
+        <!-- Joystick -->
+        <div id="joystick">
+            <div id="stick"></div>
+        </div>
+
+        <!-- Saut -->
+        <button id="jump">↑</button>
+
     </div>
 
-    <button id="jump">↑</button>
 
-</div>
+    <!-- Three.js -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+        }
+    }
+    </script>
 
-<script type="module" src="script.js"></script>
+    <script type="module" src="script.js"></script>
 
 </body>
 </html>
