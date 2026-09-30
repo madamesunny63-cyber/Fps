@@ -10,85 +10,71 @@ body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #202832;
+    background: #222;
     touch-action: none;
 }
 
 #game {
-    position: relative;
-    width: 100%;
-    height: 100%;
+    position: fixed;
+    inset: 0;
     overflow: hidden;
 }
 
 canvas {
-    display: block;
     position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0;
+    display: block;
 }
 
-/* VISEUR */
+/* viseur */
 
 #crosshair {
     position: absolute;
     left: 50%;
     top: 50%;
-
     transform: translate(-50%, -50%);
 
     color: white;
-    font-size: 30px;
+    font-size: 32px;
     font-weight: bold;
 
     z-index: 10;
     pointer-events: none;
 }
 
-/* JOYSTICK */
+/* joystick */
 
 #joystick {
     position: absolute;
-
     left: 30px;
     bottom: 25px;
 
-    width: 135px;
-    height: 135px;
+    width: 140px;
+    height: 140px;
 
     border-radius: 50%;
-
-    background: rgba(255,255,255,0.15);
-    border: 2px solid rgba(255,255,255,0.45);
+    border: 2px solid rgba(255,255,255,.5);
+    background: rgba(255,255,255,.15);
 
     z-index: 20;
-
-    touch-action: none;
 }
 
 #stick {
     position: absolute;
+    left: 40px;
+    top: 40px;
 
-    left: 38px;
-    top: 38px;
-
-    width: 55px;
-    height: 55px;
+    width: 56px;
+    height: 56px;
 
     border-radius: 50%;
-
-    background: rgba(255,255,255,0.65);
-
-    pointer-events: none;
+    background: rgba(255,255,255,.7);
 }
 
-/* SAUT */
+/* bouton saut */
 
 #jump {
     position: absolute;
-
     right: 30px;
     bottom: 35px;
 
@@ -96,23 +82,19 @@ canvas {
     height: 80px;
 
     border-radius: 50%;
-
     border: 2px solid white;
 
-    background: rgba(255,255,255,0.18);
-
+    background: rgba(255,255,255,.2);
     color: white;
 
     font-size: 32px;
 
     z-index: 20;
-
-    touch-action: none;
 }
 
-/* Sur PC uniquement */
-@media (pointer: fine) and (min-width: 800px) {
+/* PC */
 
+@media (min-width: 800px) {
     #joystick,
     #jump {
         display: none;
