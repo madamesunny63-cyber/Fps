@@ -1,264 +1,641 @@
 import * as THREE from "three";
 
+
+/* =====================================================
+   SCÈNE
+===================================================== */
+
 const scene = new THREE.Scene();
+
 scene.background = new THREE.Color(0x202832);
-scene.fog = new THREE.Fog(0x202832, 15, 90);
+
+scene.fog = new THREE.Fog(
+    0x202832,
+    15,
+    90
+);
+
+
+/* =====================================================
+   CAMÉRA
+===================================================== */
 
 const camera = new THREE.PerspectiveCamera(
     80,
-    window.innerWidth / window.innerHeight,
+    1,
     0.1,
     200
 );
 
+camera.rotation.order = "YXZ";
+
+
+/* =====================================================
+   RENDERER
+===================================================== */
+
 const renderer = new THREE.WebGLRenderer({
-    antialias: true
+    antialias: true,
+    powerPreference: "high-performance"
 });
 
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio || 1, 2)
+);
 
-document.getElementById("game").appendChild(renderer.domElement);
+renderer.setSize(
+    1,
+    1,
+    false
+);
 
-/* LUMIÈRES */
+renderer.domElement.style.position = "absolute";
+renderer.domElement.style.left = "0";
+renderer.domElement.style.top = "0";
+renderer.domElement.style.width = "100%";
+renderer.domElement.style.height = "100%";
 
-scene.add(
+document
+    .getElementById("game")
+    .appendChild(renderer.domElement);
+
+
+/* =====================================================
+   LUMIÈRES
+===================================================== */
+
+const ambientLight =
     new THREE.HemisphereLight(
         0xffffff,
-        0x444444,
+        0x303840,
         2
-    )
+    );
+
+scene.add(ambientLight);
+
+
+const sun =
+    new THREE.DirectionalLight(
+        0xffffff,
+        2
+    );
+
+sun.position.set(
+    10,
+    20,
+    10
 );
 
-const sun = new THREE.DirectionalLight(0xffffff, 2);
-sun.position.set(10, 20, 10);
 scene.add(sun);
 
-/* SOL */
 
-const floor = new THREE.Mesh(
-    new THREE.BoxGeometry(60, 1, 60),
-    new THREE.MeshStandardMaterial({
-        color: 0x46515d
-    })
-);
+/* =====================================================
+   SOL
+===================================================== */
 
-floor.position.y = -0.5;
-scene.add(floor);
+const floor =
+    new THREE.Mesh(
+        new THREE.BoxGeometry(
+            60,
+            1,
+            60
+        ),
 
-/* MURS */
-
-function wall(x, y, z, w, h, d) {
-
-    const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(w, h, d),
         new THREE.MeshStandardMaterial({
-            color: 0x697582
+            color: 0x46515d
         })
     );
 
-    mesh.position.set(x, y, z);
+floor.position.y = -0.5;
+
+scene.add(floor);
+
+
+/* =====================================================
+   MURS
+===================================================== */
+
+function createWall(
+    x,
+    y,
+    z,
+    width,
+    height,
+    depth
+) {
+
+    const mesh =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                width,
+                height,
+                depth
+            ),
+
+            new THREE.MeshStandardMaterial({
+                color: 0x697582
+            })
+        );
+
+    mesh.position.set(
+        x,
+        y,
+        z
+    );
+
     scene.add(mesh);
 }
 
-wall(0, 3, -30, 60, 6, 1);
-wall(0, 3, 30, 60, 6, 1);
-wall(-30, 3, 0, 1, 6, 60);
-wall(30, 3, 0, 1, 6, 60);
 
-/* OBSTACLES */
+/* Murs de l'arène */
 
-wall(-10, 2, -8, 8, 4, 2);
-wall(10, 2, 5, 8, 4, 2);
-wall(0, 2, 15, 10, 4, 2);
+createWall(
+    0,
+    3,
+    -30,
+    60,
+    6,
+    1
+);
 
-/* JOUEUR */
+createWall(
+    0,
+    3,
+    30,
+    60,
+    6,
+    1
+);
+
+createWall(
+    -30,
+    3,
+    0,
+    1,
+    6,
+    60
+);
+
+createWall(
+    30,
+    3,
+    0,
+    1,
+    6,
+    60
+);
+
+
+/* =====================================================
+   OBSTACLES
+===================================================== */
+
+createWall(
+    -10,
+    2,
+    -8,
+    8,
+    4,
+    2
+);
+
+createWall(
+    10,
+    2,
+    5,
+    8,
+    4,
+    2
+);
+
+createWall(
+    0,
+    2,
+    15,
+    10,
+    4,
+    2
+);
+
+
+/* =====================================================
+   JOUEUR
+===================================================== */
 
 const player = {
-    position: new THREE.Vector3(0, 1.7, 20),
-    velocity: new THREE.Vector3(),
+
+    position:
+        new THREE.Vector3(
+            0,
+            1.7,
+            20
+        ),
+
+    velocity:
+        new THREE.Vector3(
+            0,
+            0,
+            0
+        ),
+
     yaw: 0,
+
     pitch: 0,
+
     speed: 7,
-    jump: 9,
+
+    jumpForce: 9,
+
     grounded: true
 };
 
-/* CLAVIER */
+
+/* =====================================================
+   CLAVIER
+===================================================== */
 
 const keys = {};
 
-window.addEventListener("keydown", e => {
-    keys[e.code] = true;
-});
+window.addEventListener(
+    "keydown",
+    event => {
 
-window.addEventListener("keyup", e => {
-    keys[e.code] = false;
-});
+        keys[event.code] = true;
 
-/* JOYSTICK */
+        if (
+            event.code === "Space" ||
+            event.code === "ArrowUp" ||
+            event.code === "ArrowDown"
+        ) {
+            event.preventDefault();
+        }
+    }
+);
 
-const joystick = document.getElementById("joystick");
-const stick = document.getElementById("stick");
+
+window.addEventListener(
+    "keyup",
+    event => {
+
+        keys[event.code] = false;
+    }
+);
+
+
+/* =====================================================
+   JOYSTICK
+===================================================== */
+
+const joystick =
+    document.getElementById(
+        "joystick"
+    );
+
+const stick =
+    document.getElementById(
+        "stick"
+    );
 
 let joyX = 0;
 let joyY = 0;
-let joyActive = false;
 
-function joystickMove(e) {
+let joystickActive = false;
 
-    const r = joystick.getBoundingClientRect();
 
-    let x = e.clientX - (r.left + r.width / 2);
-    let y = e.clientY - (r.top + r.height / 2);
+function updateJoystick(event) {
 
-    const max = 40;
-    const distance = Math.sqrt(x * x + y * y);
+    const rect =
+        joystick.getBoundingClientRect();
 
-    if (distance > max) {
-        x = x / distance * max;
-        y = y / distance * max;
+    let x =
+        event.clientX -
+        (
+            rect.left +
+            rect.width / 2
+        );
+
+    let y =
+        event.clientY -
+        (
+            rect.top +
+            rect.height / 2
+        );
+
+    const maxDistance = 40;
+
+    const distance =
+        Math.sqrt(
+            x * x +
+            y * y
+        );
+
+    if (
+        distance >
+        maxDistance
+    ) {
+
+        x =
+            x / distance *
+            maxDistance;
+
+        y =
+            y / distance *
+            maxDistance;
     }
 
-    joyX = x / max;
-    joyY = y / max;
+    joyX =
+        x / maxDistance;
+
+    joyY =
+        y / maxDistance;
 
     stick.style.transform =
         `translate(${x}px, ${y}px)`;
 }
 
-joystick.addEventListener("pointerdown", e => {
-    joyActive = true;
-    joystick.setPointerCapture(e.pointerId);
-    joystickMove(e);
-});
 
-joystick.addEventListener("pointermove", e => {
-    if (joyActive) joystickMove(e);
-});
+joystick.addEventListener(
+    "pointerdown",
+    event => {
 
-joystick.addEventListener("pointerup", () => {
-    joyActive = false;
+        joystickActive = true;
+
+        joystick.setPointerCapture(
+            event.pointerId
+        );
+
+        updateJoystick(event);
+    }
+);
+
+
+joystick.addEventListener(
+    "pointermove",
+    event => {
+
+        if (!joystickActive)
+            return;
+
+        updateJoystick(event);
+    }
+);
+
+
+function resetJoystick() {
+
+    joystickActive = false;
+
     joyX = 0;
     joyY = 0;
-    stick.style.transform = "translate(0,0)";
-});
 
-/* REGARDER AVEC LE DOIGT */
+    stick.style.transform =
+        "translate(0px, 0px)";
+}
 
-let lookActive = false;
-let lastX = 0;
-let lastY = 0;
 
-window.addEventListener("pointerdown", e => {
+joystick.addEventListener(
+    "pointerup",
+    resetJoystick
+);
 
-    if (
-        e.target === joystick ||
-        e.target === stick ||
-        e.target === document.getElementById("jump")
-    ) return;
+joystick.addEventListener(
+    "pointercancel",
+    resetJoystick
+);
 
-    lookActive = true;
-    lastX = e.clientX;
-    lastY = e.clientY;
-});
 
-window.addEventListener("pointermove", e => {
+/* =====================================================
+   REGARDER AVEC LE DOIGT
+===================================================== */
 
-    if (!lookActive) return;
+let looking = false;
 
-    const dx = e.clientX - lastX;
-    const dy = e.clientY - lastY;
+let lastTouchX = 0;
+let lastTouchY = 0;
 
-    player.yaw -= dx * 0.005;
-    player.pitch -= dy * 0.005;
 
-    player.pitch = THREE.MathUtils.clamp(
-        player.pitch,
-        -1.4,
-        1.4
-    );
+window.addEventListener(
+    "pointerdown",
+    event => {
 
-    lastX = e.clientX;
-    lastY = e.clientY;
-});
+        if (
+            event.target === joystick ||
+            event.target === stick ||
+            event.target ===
+            document.getElementById("jump")
+        ) {
+            return;
+        }
 
-window.addEventListener("pointerup", () => {
-    lookActive = false;
-});
+        looking = true;
 
-/* SAUT */
+        lastTouchX =
+            event.clientX;
+
+        lastTouchY =
+            event.clientY;
+    }
+);
+
+
+window.addEventListener(
+    "pointermove",
+    event => {
+
+        if (!looking)
+            return;
+
+        const dx =
+            event.clientX -
+            lastTouchX;
+
+        const dy =
+            event.clientY -
+            lastTouchY;
+
+
+        player.yaw -=
+            dx * 0.005;
+
+        player.pitch -=
+            dy * 0.005;
+
+
+        player.pitch =
+            THREE.MathUtils.clamp(
+                player.pitch,
+                -1.4,
+                1.4
+            );
+
+
+        lastTouchX =
+            event.clientX;
+
+        lastTouchY =
+            event.clientY;
+    }
+);
+
+
+window.addEventListener(
+    "pointerup",
+    () => {
+
+        looking = false;
+    }
+);
+
+
+/* =====================================================
+   SAUT
+===================================================== */
 
 function jump() {
 
-    if (!player.grounded) return;
+    if (!player.grounded)
+        return;
 
-    player.velocity.y = player.jump;
+    player.velocity.y =
+        player.jumpForce;
+
     player.grounded = false;
 }
 
-document.getElementById("jump")
-    .addEventListener("pointerdown", jump);
 
-window.addEventListener("keydown", e => {
-    if (e.code === "Space") jump();
-});
+const jumpButton =
+    document.getElementById(
+        "jump"
+    );
 
-/* DÉPLACEMENT */
+jumpButton.addEventListener(
+    "pointerdown",
+    event => {
 
-function updatePlayer(dt) {
+        event.preventDefault();
+
+        jump();
+    }
+);
+
+
+window.addEventListener(
+    "keydown",
+    event => {
+
+        if (
+            event.code === "Space"
+        ) {
+            jump();
+        }
+    }
+);
+
+
+/* =====================================================
+   DÉPLACEMENT
+===================================================== */
+
+function updateMovement(dt) {
 
     let forward = 0;
     let right = 0;
 
-    if (keys["KeyW"]) forward += 1;
-    if (keys["KeyS"]) forward -= 1;
-    if (keys["KeyD"]) right += 1;
-    if (keys["KeyA"]) right -= 1;
 
-    if (Math.abs(joyY) > 0.05)
+    /* Clavier */
+
+    if (keys["KeyW"])
+        forward += 1;
+
+    if (keys["KeyS"])
+        forward -= 1;
+
+    if (keys["KeyD"])
+        right += 1;
+
+    if (keys["KeyA"])
+        right -= 1;
+
+
+    /* Joystick */
+
+    if (
+        Math.abs(joyY) > 0.05
+    ) {
         forward = -joyY;
+    }
 
-    if (Math.abs(joyX) > 0.05)
+    if (
+        Math.abs(joyX) > 0.05
+    ) {
         right = joyX;
+    }
 
-    const direction = new THREE.Vector3();
 
-    direction.set(
-        right,
-        0,
-        -forward
-    );
+    /* Direction */
+
+    const direction =
+        new THREE.Vector3(
+            right,
+            0,
+            -forward
+        );
+
 
     direction.applyAxisAngle(
-        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(
+            0,
+            1,
+            0
+        ),
         player.yaw
     );
 
-    if (direction.lengthSq() > 1)
+
+    if (
+        direction.lengthSq() > 1
+    ) {
         direction.normalize();
+    }
+
+
+    /* Déplacement */
 
     player.position.x +=
-        direction.x * player.speed * dt;
+        direction.x *
+        player.speed *
+        dt;
 
     player.position.z +=
-        direction.z * player.speed * dt;
+        direction.z *
+        player.speed *
+        dt;
 
-    /* gravité */
 
-    player.velocity.y -= 25 * dt;
+    /* Gravité */
+
+    player.velocity.y -=
+        25 * dt;
 
     player.position.y +=
         player.velocity.y * dt;
 
-    if (player.position.y <= 1.7) {
+
+    /* Sol */
+
+    if (
+        player.position.y <= 1.7
+    ) {
 
         player.position.y = 1.7;
+
         player.velocity.y = 0;
+
         player.grounded = true;
     }
 
-    /* limites */
+
+    /* Limites de l'arène */
 
     player.position.x =
         THREE.MathUtils.clamp(
@@ -275,7 +652,10 @@ function updatePlayer(dt) {
         );
 }
 
-/* CAMÉRA */
+
+/* =====================================================
+   CAMÉRA
+===================================================== */
 
 function updateCamera() {
 
@@ -283,47 +663,174 @@ function updateCamera() {
         player.position
     );
 
-    camera.rotation.order = "YXZ";
+    camera.rotation.order =
+        "YXZ";
 
-    camera.rotation.y = player.yaw;
-    camera.rotation.x = player.pitch;
+    camera.rotation.y =
+        player.yaw;
+
+    camera.rotation.x =
+        player.pitch;
 }
 
-/* REDIMENSIONNEMENT */
 
-function resize() {
+/* =====================================================
+   REDIMENSIONNEMENT
+===================================================== */
+
+function resizeRenderer() {
+
+    const game =
+        document.getElementById(
+            "game"
+        );
+
+
+    /*
+     * On prend la taille RÉELLE
+     * du conteneur du jeu.
+     */
+
+    const width =
+        game.clientWidth;
+
+    const height =
+        game.clientHeight;
+
+
+    if (
+        width <= 0 ||
+        height <= 0
+    ) {
+        return;
+    }
+
 
     camera.aspect =
-        window.innerWidth /
-        window.innerHeight;
+        width / height;
 
     camera.updateProjectionMatrix();
 
+
     renderer.setSize(
-        window.innerWidth,
-        window.innerHeight
+        width,
+        height,
+        false
+    );
+
+
+    renderer.domElement.style.width =
+        width + "px";
+
+    renderer.domElement.style.height =
+        height + "px";
+}
+
+
+/* Resize classique */
+
+window.addEventListener(
+    "resize",
+    resizeRenderer
+);
+
+
+/* Rotation téléphone */
+
+window.addEventListener(
+    "orientationchange",
+    () => {
+
+        resizeRenderer();
+
+        setTimeout(
+            resizeRenderer,
+            100
+        );
+
+        setTimeout(
+            resizeRenderer,
+            300
+        );
+
+        setTimeout(
+            resizeRenderer,
+            700
+        );
+    }
+);
+
+
+/* Android / navigateur */
+
+if (
+    window.visualViewport
+) {
+
+    window.visualViewport.addEventListener(
+        "resize",
+        resizeRenderer
     );
 }
 
-window.addEventListener("resize", resize);
-window.addEventListener("orientationchange", resize);
 
-/* BOUCLE */
+/* ResizeObserver */
 
-const clock = new THREE.Clock();
+if (
+    window.ResizeObserver
+) {
 
-function loop() {
+    const observer =
+        new ResizeObserver(
+            resizeRenderer
+        );
 
-    const dt =
-        Math.min(clock.getDelta(), 0.05);
-
-    updatePlayer(dt);
-    updateCamera();
-
-    renderer.render(scene, camera);
-
-    requestAnimationFrame(loop);
+    observer.observe(
+        document.getElementById(
+            "game"
+        )
+    );
 }
 
-resize();
-loop();
+
+/* =====================================================
+   BOUCLE DU JEU
+===================================================== */
+
+const clock =
+    new THREE.Clock();
+
+
+function gameLoop() {
+
+    const dt =
+        Math.min(
+            clock.getDelta(),
+            0.05
+        );
+
+
+    updateMovement(dt);
+
+    updateCamera();
+
+
+    renderer.render(
+        scene,
+        camera
+    );
+
+
+    requestAnimationFrame(
+        gameLoop
+    );
+}
+
+
+/* =====================================================
+   DÉMARRAGE
+===================================================== */
+
+resizeRenderer();
+
+gameLoop();
