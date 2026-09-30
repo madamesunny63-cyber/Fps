@@ -35,25 +35,12 @@ camera.rotation.order = "YXZ";
 ===================================================== */
 
 const renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    powerPreference: "high-performance"
+    antialias: true
 });
 
 renderer.setPixelRatio(
     Math.min(window.devicePixelRatio || 1, 2)
 );
-
-renderer.setSize(
-    1,
-    1,
-    false
-);
-
-renderer.domElement.style.position = "absolute";
-renderer.domElement.style.left = "0";
-renderer.domElement.style.top = "0";
-renderer.domElement.style.width = "100%";
-renderer.domElement.style.height = "100%";
 
 document
     .getElementById("game")
@@ -64,14 +51,14 @@ document
    LUMIÈRES
 ===================================================== */
 
-const ambientLight =
+const light =
     new THREE.HemisphereLight(
         0xffffff,
-        0x303840,
+        0x444444,
         2
     );
 
-scene.add(ambientLight);
+scene.add(light);
 
 
 const sun =
@@ -124,7 +111,7 @@ function createWall(
     depth
 ) {
 
-    const mesh =
+    const wall =
         new THREE.Mesh(
             new THREE.BoxGeometry(
                 width,
@@ -137,17 +124,15 @@ function createWall(
             })
         );
 
-    mesh.position.set(
+    wall.position.set(
         x,
         y,
         z
     );
 
-    scene.add(mesh);
+    scene.add(wall);
 }
 
-
-/* Murs de l'arène */
 
 createWall(
     0,
@@ -232,11 +217,7 @@ const player = {
         ),
 
     velocity:
-        new THREE.Vector3(
-            0,
-            0,
-            0
-        ),
+        new THREE.Vector3(),
 
     yaw: 0,
 
@@ -262,16 +243,11 @@ window.addEventListener(
 
         keys[event.code] = true;
 
-        if (
-            event.code === "Space" ||
-            event.code === "ArrowUp" ||
-            event.code === "ArrowDown"
-        ) {
+        if (event.code === "Space") {
             event.preventDefault();
         }
     }
 );
-
 
 window.addEventListener(
     "keyup",
@@ -321,7 +297,7 @@ function updateJoystick(event) {
             rect.height / 2
         );
 
-    const maxDistance = 40;
+    const max = 40;
 
     const distance =
         Math.sqrt(
@@ -329,25 +305,17 @@ function updateJoystick(event) {
             y * y
         );
 
-    if (
-        distance >
-        maxDistance
-    ) {
+    if (distance > max) {
 
         x =
-            x / distance *
-            maxDistance;
+            x / distance * max;
 
         y =
-            y / distance *
-            maxDistance;
+            y / distance * max;
     }
 
-    joyX =
-        x / maxDistance;
-
-    joyY =
-        y / maxDistance;
+    joyX = x / max;
+    joyY = y / max;
 
     stick.style.transform =
         `translate(${x}px, ${y}px)`;
@@ -373,10 +341,9 @@ joystick.addEventListener(
     "pointermove",
     event => {
 
-        if (!joystickActive)
-            return;
-
-        updateJoystick(event);
+        if (joystickActive) {
+            updateJoystick(event);
+        }
     }
 );
 
@@ -405,13 +372,13 @@ joystick.addEventListener(
 
 
 /* =====================================================
-   REGARDER AVEC LE DOIGT
+   REGARDER
 ===================================================== */
 
 let looking = false;
 
-let lastTouchX = 0;
-let lastTouchY = 0;
+let lastX = 0;
+let lastY = 0;
 
 
 window.addEventListener(
@@ -429,11 +396,8 @@ window.addEventListener(
 
         looking = true;
 
-        lastTouchX =
-            event.clientX;
-
-        lastTouchY =
-            event.clientY;
+        lastX = event.clientX;
+        lastY = event.clientY;
     }
 );
 
@@ -442,24 +406,19 @@ window.addEventListener(
     "pointermove",
     event => {
 
-        if (!looking)
-            return;
+        if (!looking) return;
 
         const dx =
-            event.clientX -
-            lastTouchX;
+            event.clientX - lastX;
 
         const dy =
-            event.clientY -
-            lastTouchY;
-
+            event.clientY - lastY;
 
         player.yaw -=
             dx * 0.005;
 
         player.pitch -=
             dy * 0.005;
-
 
         player.pitch =
             THREE.MathUtils.clamp(
@@ -468,12 +427,8 @@ window.addEventListener(
                 1.4
             );
 
-
-        lastTouchX =
-            event.clientX;
-
-        lastTouchY =
-            event.clientY;
+        lastX = event.clientX;
+        lastY = event.clientY;
     }
 );
 
@@ -481,7 +436,6 @@ window.addEventListener(
 window.addEventListener(
     "pointerup",
     () => {
-
         looking = false;
     }
 );
@@ -503,29 +457,24 @@ function jump() {
 }
 
 
-const jumpButton =
-    document.getElementById(
-        "jump"
+document
+    .getElementById("jump")
+    .addEventListener(
+        "pointerdown",
+        event => {
+
+            event.preventDefault();
+
+            jump();
+        }
     );
-
-jumpButton.addEventListener(
-    "pointerdown",
-    event => {
-
-        event.preventDefault();
-
-        jump();
-    }
-);
 
 
 window.addEventListener(
     "keydown",
     event => {
 
-        if (
-            event.code === "Space"
-        ) {
+        if (event.code === "Space") {
             jump();
         }
     }
@@ -542,8 +491,6 @@ function updateMovement(dt) {
     let right = 0;
 
 
-    /* Clavier */
-
     if (keys["KeyW"])
         forward += 1;
 
@@ -557,22 +504,12 @@ function updateMovement(dt) {
         right -= 1;
 
 
-    /* Joystick */
-
-    if (
-        Math.abs(joyY) > 0.05
-    ) {
+    if (Math.abs(joyY) > 0.05)
         forward = -joyY;
-    }
 
-    if (
-        Math.abs(joyX) > 0.05
-    ) {
+    if (Math.abs(joyX) > 0.05)
         right = joyX;
-    }
 
-
-    /* Direction */
 
     const direction =
         new THREE.Vector3(
@@ -583,23 +520,14 @@ function updateMovement(dt) {
 
 
     direction.applyAxisAngle(
-        new THREE.Vector3(
-            0,
-            1,
-            0
-        ),
+        new THREE.Vector3(0, 1, 0),
         player.yaw
     );
 
 
-    if (
-        direction.lengthSq() > 1
-    ) {
+    if (direction.lengthSq() > 1)
         direction.normalize();
-    }
 
-
-    /* Déplacement */
 
     player.position.x +=
         direction.x *
@@ -621,11 +549,7 @@ function updateMovement(dt) {
         player.velocity.y * dt;
 
 
-    /* Sol */
-
-    if (
-        player.position.y <= 1.7
-    ) {
+    if (player.position.y <= 1.7) {
 
         player.position.y = 1.7;
 
@@ -635,7 +559,7 @@ function updateMovement(dt) {
     }
 
 
-    /* Limites de l'arène */
+    /* Limites */
 
     player.position.x =
         THREE.MathUtils.clamp(
@@ -675,42 +599,57 @@ function updateCamera() {
 
 
 /* =====================================================
-   REDIMENSIONNEMENT
+   CORRECTION PAYSAGE ANDROID
 ===================================================== */
 
-function resizeRenderer() {
+function resizeGame() {
 
-    const game =
-        document.getElementById(
-            "game"
-        );
+    let width =
+        window.innerWidth;
+
+    let height =
+        window.innerHeight;
 
 
     /*
-     * On prend la taille RÉELLE
-     * du conteneur du jeu.
+     * C'est la partie importante.
+     *
+     * Certains téléphones Android
+     * continuent de fournir les dimensions
+     * portrait après la rotation.
+     *
+     * En paysage, si la largeur annoncée
+     * est plus petite que la hauteur,
+     * on inverse les deux.
      */
 
-    const width =
-        game.clientWidth;
-
-    const height =
-        game.clientHeight;
+    const isLandscape =
+        window.matchMedia(
+            "(orientation: landscape)"
+        ).matches;
 
 
     if (
-        width <= 0 ||
-        height <= 0
+        isLandscape &&
+        width < height
     ) {
-        return;
+
+        const oldWidth = width;
+
+        width = height;
+        height = oldWidth;
     }
 
+
+    /* Taille de la caméra */
 
     camera.aspect =
         width / height;
 
     camera.updateProjectionMatrix();
 
+
+    /* Taille réelle du canvas */
 
     renderer.setSize(
         width,
@@ -724,77 +663,73 @@ function resizeRenderer() {
 
     renderer.domElement.style.height =
         height + "px";
+
+
+    /*
+     * Le canvas doit toujours partir
+     * du coin supérieur gauche.
+     */
+
+    renderer.domElement.style.left =
+        "0px";
+
+    renderer.domElement.style.top =
+        "0px";
 }
 
 
-/* Resize classique */
+/* =====================================================
+   ÉVÉNEMENTS DE ROTATION
+===================================================== */
 
 window.addEventListener(
     "resize",
-    resizeRenderer
+    resizeGame
 );
 
-
-/* Rotation téléphone */
 
 window.addEventListener(
     "orientationchange",
     () => {
 
-        resizeRenderer();
+        resizeGame();
 
         setTimeout(
-            resizeRenderer,
+            resizeGame,
             100
         );
 
         setTimeout(
-            resizeRenderer,
+            resizeGame,
             300
         );
 
         setTimeout(
-            resizeRenderer,
+            resizeGame,
             700
+        );
+
+        setTimeout(
+            resizeGame,
+            1200
         );
     }
 );
 
 
-/* Android / navigateur */
+/* Android */
 
-if (
-    window.visualViewport
-) {
+if (window.visualViewport) {
 
     window.visualViewport.addEventListener(
         "resize",
-        resizeRenderer
-    );
-}
-
-
-/* ResizeObserver */
-
-if (
-    window.ResizeObserver
-) {
-
-    const observer =
-        new ResizeObserver(
-            resizeRenderer
-        );
-
-    observer.observe(
-        document.getElementById(
-            "game"
-        )
+        resizeGame
     );
 }
 
 
 /* =====================================================
-   BOUCLE DU JEU
+   BOUCLE
 ===================================================== */
 
 const clock =
@@ -809,17 +744,14 @@ function gameLoop() {
             0.05
         );
 
-
     updateMovement(dt);
 
     updateCamera();
-
 
     renderer.render(
         scene,
         camera
     );
-
 
     requestAnimationFrame(
         gameLoop
@@ -831,6 +763,6 @@ function gameLoop() {
    DÉMARRAGE
 ===================================================== */
 
-resizeRenderer();
+resizeGame();
 
 gameLoop();
